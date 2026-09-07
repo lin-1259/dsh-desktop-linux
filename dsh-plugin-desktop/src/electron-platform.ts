@@ -92,7 +92,12 @@ class LinuxPlatformStrategy implements ElectronPlatformStrategy {
 
   refreshApplicationMenu(_applicationMenuItems: readonly MenuItemConstructorOptions[]): void {}
 
-  configureWindow(_window: BrowserWindow): void {}
+  configureWindow(window: BrowserWindow): void {
+    // Linux keeps no Electron default menu bar (like Windows); the web UI
+    // provides its own chrome. Without this, a bare default File/Edit/View
+    // menu is shown on every window.
+    window.removeMenu()
+  }
 
   refreshThemeMaterial(_window: BrowserWindow, _material: DesktopWindowMaterial): void {}
 }

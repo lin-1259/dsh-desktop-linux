@@ -36,6 +36,12 @@ jobs:
           LOCAL_VER="${LOCAL_LINUX_TAG#linux-}"
           echo "upstream_tag=$UPSTREAM_TAG"
           echo "local_linux_tag=$LOCAL_LINUX_TAG"
+          # Manual dispatch always rebuilds the current upstream version
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "skip=" >> "$GITHUB_OUTPUT"
+            echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$LOCAL_VER" = "$UPSTREAM_TAG" ]; then
             echo "skip=already built $UPSTREAM_TAG"
             exit 0
