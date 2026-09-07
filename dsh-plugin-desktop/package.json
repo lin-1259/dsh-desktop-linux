@@ -417,9 +417,12 @@
         "build/tray-icon-blue@2x.png"
       ],
       "target": [
-        "dir"
+        "AppImage",
+        "deb"
       ],
-      "icon": "build/app-icon.png"
+      "icon": "build/app-icon.png",
+      "category": "Development",
+      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}"
     }
   }
 }

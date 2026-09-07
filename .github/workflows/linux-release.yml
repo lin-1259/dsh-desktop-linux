@@ -1,0 +1,92 @@
+name: linux-release
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7 */6 * * *'   # 每 6 小时轮询上游 release（分钟错开官方发布节奏）
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Discover upstream release
+        id: discover
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # 上游（anywhere-labs）最新稳定 release tag，如 v2.0.5
+          UPSTREAM_TAG="$(gh api repos/anywhere-labs/dsh-desktop/releases/latest \
+            --jq 'select(.prerelease == false) | .tag_name' 2>/dev/null || echo '')"
+          if [ -z "$UPSTREAM_TAG" ]; then
+            echo "skip=no upstream release"
+            exit 0
+          fi
+          # 本 fork 最新 linux-* release 的 tag（如 linux-v2.0.5）里的版本段
+          LOCAL_LINUX_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" \
+            --jq '[.[] | select(.tag_name | startswith("linux-")) | .tag_name] | .[0] // ""' 2>/dev/null || echo '')"
+          LOCAL_VER="${LOCAL_LINUX_TAG#linux-}"
+          echo "upstream_tag=$UPSTREAM_TAG"
+          echo "local_linux_tag=$LOCAL_LINUX_TAG"
+          if [ "$LOCAL_VER" = "$UPSTREAM_TAG" ]; then
+            echo "skip=already built $UPSTREAM_TAG"
+            exit 0
+          fi
+          echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+          echo "skip=" >> "$GITHUB_OUTPUT"
+
+      - name: Skip when already built
+        if: steps.discover.outputs.skip != ''
+        run: |
+          echo "Skip: ${{ steps.discover.outputs.skip }}"
+
+      - name: Setup Node
+        if: steps.discover.outputs.upstream_tag != ''
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.2
+
+      - name: Install dependencies
+        if: steps.discover.outputs.upstream_tag != ''
+        run: |
+          corepack enable
+          yarn install --immutable
+
+      - name: Build Linux packages
+        if: steps.discover.outputs.upstream_tag != ''
+        env:
+          DSH_TELEMETRY_DISABLED: '1'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: yarn dist:linux
+
+      - name: Upload artifacts
+        if: steps.discover.outputs.upstream_tag != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            dsh-plugin-desktop/dist/*.AppImage
+            dsh-plugin-desktop/dist/*.deb
+          if-no-files-found: error
+
+      - name: Create release
+        if: steps.discover.outputs.upstream_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="linux-${{ steps.discover.outputs.upstream_tag }}"
+          BODY="Auto-built from upstream anywhere-labs/dsh-desktop ${{ steps.discover.outputs.upstream_tag }} with Linux packaging config. deb extracts to /opt/DSH Desktop; AppImage runs directly. Desktop update channel is disabled on Linux by design."
+          gh release create "$TAG" \
+            dsh-plugin-desktop/dist/*.AppImage \
+            dsh-plugin-desktop/dist/*.deb \
+            --title "DSH Desktop Linux ${{ steps.discover.outputs.upstream_tag }}" \
+            --notes "$BODY" || echo "release may already exist, ignoring"
