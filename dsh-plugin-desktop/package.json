@@ -1,6 +1,10 @@
 {
   "name": "dsh-plugin-desktop",
   "version": "2.0.5",
+  "author": {
+    "name": "lin-1259",
+    "email": "lin-1259@users.noreply.github.com"
+  },
   "description": "DSH Desktop: an Electron shell composed as a DeepSeek Harness Cordis plugin",
   "license": "MIT",
   "publishConfig": {
