@@ -418,7 +418,9 @@
         "build/tray-icon-blue.png",
         "build/tray-icon-blue@1.25x.png",
         "build/tray-icon-blue@1.5x.png",
-        "build/tray-icon-blue@2x.png"
+        "build/tray-icon-blue@2x.png",
+        "node_modules/@img/sharp-libvips-linux-*/**",
+        "node_modules/@img/sharp-linux-*/**"
       ],
       "target": [
         "AppImage",
