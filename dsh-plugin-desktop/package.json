@@ -355,9 +355,7 @@
       "build/tray-icon*.png",
       "cordis.patch.yml",
       "lib/**",
-      "package.json",
-      "!node_modules/node-pty/build/**",
-      "!node_modules/fs-ext/build/**"
+      "package.json"
     ],
     "mac": {
       "asarUnpack": [
@@ -436,17 +434,29 @@
         "node_modules/fs-ext/**"
       ],
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/app-icon.png",
       "category": "Development",
-      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}"
+      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}",
+      "syncDesktopName": true
     },
     "npmRebuild": true
   },
   "author": {
     "name": "lin-1259",
     "email": "lin-1259@users.noreply.github.com"
-  }
+  },
+  "desktopName": "dsh-desktop-el"
 }
