@@ -99,6 +99,7 @@ jobs:
           TAG="linux-${{ steps.discover.outputs.upstream_tag }}"
           BODY="Auto-built from upstream anywhere-labs/dsh-desktop ${{ steps.discover.outputs.upstream_tag }} with Linux packaging config. deb extracts to /opt/DSH Desktop; AppImage runs directly. Desktop update channel is disabled on Linux by design."
           gh release create "$TAG" \
+            -R "${{ github.repository }}" \
             dsh-plugin-desktop/dist/*.AppImage \
             dsh-plugin-desktop/dist/*.deb \
             --title "DSH Desktop Linux ${{ steps.discover.outputs.upstream_tag }}" \
