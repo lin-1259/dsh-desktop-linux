@@ -765,11 +765,10 @@ export function verifyPackagedRuntime(
     ? REQUIRED_MACOS_UNPACKED_RUNTIME_ENTRIES
     : REQUIRED_NON_MACOS_UNPACKED_RUNTIME_ENTRIES
   const posixFsExtEntry = context.electronPlatformName === 'darwin'
-    || context.electronPlatformName === 'linux'
     ? context.arch === 1
-      ? REQUIRED_POSIX_FS_EXT_ENTRIES[context.electronPlatformName].x64
+      ? REQUIRED_POSIX_FS_EXT_ENTRIES.darwin.x64
       : context.arch === 3
-        ? REQUIRED_POSIX_FS_EXT_ENTRIES[context.electronPlatformName].arm64
+        ? REQUIRED_POSIX_FS_EXT_ENTRIES.darwin.arm64
         : undefined
     : undefined
   const requiredPhysicalEntries = context.electronPlatformName === 'win32'
