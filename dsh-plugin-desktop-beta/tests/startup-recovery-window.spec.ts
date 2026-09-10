@@ -112,7 +112,7 @@ describe('Desktop startup recovery confirmations', () => {
 
     expect(desktopDialog.showDetailed).toHaveBeenCalledWith(expect.objectContaining({
       type: 'error',
-      title: '回滚失败',
+      title: '未能恢复检查点',
       presentation: 'diagnostic',
       buttons: ['关闭'],
       detail: expect.stringContaining('ERR_PNPM_OUTDATED_LOCKFILE'),
@@ -338,7 +338,8 @@ describe('Desktop startup recovery confirmations', () => {
 
     expect(desktopDialog.show).toHaveBeenCalledWith(expect.objectContaining({
       title: '更改数据目录？',
-      buttons: ['继续', '取消'],
+      detail: '请选择空文件夹或已有的 DSH 数据目录。空文件夹将用于创建新环境；原数据目录会保留。',
+      buttons: ['选择目录', '取消'],
       defaultId: 1,
       cancelId: 1,
     }), parent)
@@ -538,7 +539,7 @@ describe('Desktop startup recovery confirmations', () => {
       type: 'warning',
       title: 'Factory reset DSH Desktop?',
       detail: expect.stringContaining('C:\\Users\\Example\\.dsh'),
-      buttons: ['Reset and reinstall', 'Cancel'],
+      buttons: ['Reset data and restart', 'Cancel'],
       defaultId: 1,
       cancelId: 1,
     }), parent)

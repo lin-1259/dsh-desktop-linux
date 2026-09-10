@@ -4,39 +4,10 @@ import { join, relative, resolve, sep } from 'node:path'
 const root = resolve(import.meta.dirname, '..')
 const stableRoot = join(root, 'dsh-plugin-desktop', 'src')
 const betaRoot = join(root, 'dsh-plugin-desktop-beta', 'src')
-const allowedDifferences = new Set([
-  'agent-preset-compat.ts',
-  'bin.ts',
-  'client/AdvancedFrame.tsx',
-  'client/desktop-settings.ts',
-  'client/DesktopSettingsSection.tsx',
-  'client/index.ts',
-  'desktop-browser-access.ts',
-  'desktop-cli.ts', // alpha.2 requires explicit runCli dispatch after importing the CLI.
-  'desktop-data-directory.ts',
-  'desktop-data-operation-lock.ts',
-  'desktop-dialog-window.ts',
-  'desktop-factory-reset.ts',
-  'desktop-plugins.ts',
-  'desktop-terminal.ts',
-  'diagnostic-export-worker.ts',
-  'index.ts',
-  'launch-environment.ts',
-  'main.ts',
-  'native-ui/recovery/App.tsx',
-  'native-ui/setup-wizard/App.tsx',
-  'notifications.ts',
-  'packaged-runtime-smoke.ts',
-  'product-identity.ts',
-  'profile-manager.ts',
-  'profile.ts',
-  'recovery-copy.ts',
-  'safe-mode.ts',
-  'setup-wizard-contract.ts',
-  'startup-recovery-window.ts',
-  'updates.ts',
-  'webserver.ts',
-])
+// Both editions share behavior. Only release identity and launcher wording differ.
+const betaOnlyPaths = new Set([])
+const allowedDifferences = new Set(['product-identity.ts'])
+const normalizeIdentity = source => source.toString().replaceAll('dsh-plugin-desktop-beta', 'dsh-plugin-desktop').replaceAll('DSH Desktop Beta', 'DSH Desktop')
 
 function files(directory, base = directory) {
   const result = []
@@ -48,7 +19,7 @@ function files(directory, base = directory) {
   return result
 }
 
-const sharedPaths = new Set([...files(stableRoot), ...files(betaRoot)])
+const sharedPaths = new Set([...files(stableRoot), ...files(betaRoot), ...betaOnlyPaths])
 const differences = []
 for (const path of [...sharedPaths].sort()) {
   if (allowedDifferences.has(path)) continue
@@ -56,11 +27,15 @@ for (const path of [...sharedPaths].sort()) {
   let beta
   try { stable = readFileSync(join(stableRoot, path)) } catch { stable = undefined }
   try { beta = readFileSync(join(betaRoot, path)) } catch { beta = undefined }
-  if (stable === undefined || beta === undefined || !stable.equals(beta)) differences.push(path)
+  if (betaOnlyPaths.has(path)) {
+    if (stable !== undefined || beta === undefined) differences.push(`${path} (must exist only in beta)`)
+    continue
+  }
+  if (stable === undefined || beta === undefined || normalizeIdentity(stable) !== normalizeIdentity(beta)) differences.push(path)
 }
 
 if (differences.length > 0) {
   throw new Error(`Desktop variant source drift is not declared:\n${differences.map(path => `- src/${path}`).join('\n')}`)
 }
 
-process.stdout.write(`verify-desktop-variants: ${String(sharedPaths.size - allowedDifferences.size)} shared source files are aligned\n`)
+process.stdout.write(`verify-desktop-variants: ${String(sharedPaths.size - allowedDifferences.size - betaOnlyPaths.size)} shared source files are aligned; both editions use isolated Host and chrome\n`)

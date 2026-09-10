@@ -15,9 +15,10 @@ export type DesktopTrayLabelKey =
   | 'openTerminal'
   | 'profile'
   | 'quit'
-  | 'switchToAdvanced'
-  | 'switchToCompatibility'
-  | 'switchToExtended'
+  | 'shellMode'
+  | 'advanced'
+  | 'compatibility'
+  | 'extended'
   | 'installStable'
   | 'unavailableForDesktop'
   | 'updateAvailable'
@@ -35,9 +36,10 @@ const labels: Record<DesktopLocale, Record<DesktopTrayLabelKey, (value: string) 
     openTerminal: () => 'Open DSH Terminal',
     profile: profileName => `Profile: ${profileName}`,
     quit: () => 'Quit',
-    switchToAdvanced: () => 'Switch to Enhanced Mode',
-    switchToCompatibility: () => 'Switch to Compatibility Mode',
-    switchToExtended: () => 'Switch to Extended Window',
+    shellMode: mode => `Mode: ${mode}`,
+    advanced: () => 'Enhanced Mode',
+    compatibility: () => 'Compatibility Mode',
+    extended: () => 'Extended Window',
     installStable: () => 'Install Stable Edition…',
     unavailableForDesktop: profileName => `${profileName} (Unavailable for Desktop)`,
     updateAvailable: version => `DSH Desktop ${version} Available`,
@@ -54,9 +56,10 @@ const labels: Record<DesktopLocale, Record<DesktopTrayLabelKey, (value: string) 
     openTerminal: () => '打开 DSH 终端',
     profile: profileName => `Profile：${profileName}`,
     quit: () => '退出',
-    switchToAdvanced: () => '切换到增强模式',
-    switchToCompatibility: () => '切换到兼容模式',
-    switchToExtended: () => '切换到扩展窗口',
+    shellMode: mode => `模式：${mode}`,
+    advanced: () => '增强模式',
+    compatibility: () => '兼容模式',
+    extended: () => '扩展窗口',
     installStable: () => '安装稳定版…',
     unavailableForDesktop: profileName => `${profileName}（不可用于桌面端）`,
     updateAvailable: version => `DSH Desktop ${version} 可用`,
@@ -101,14 +104,14 @@ const restartConfirmationCopy: Record<DesktopLocale, Record<'normal' | 'recovery
     normal: {
       title: 'Restart DSH Desktop',
       message: 'Restart DSH Desktop now?',
-      detail: 'Running operations and unsent input may be interrupted. Saved settings will not be lost.',
+      detail: 'Running operations may be interrupted, and unsent content may be lost. Saved settings will be kept.',
       confirm: 'Restart',
       cancel: 'Cancel',
     },
     recovery: {
       title: 'Restart in Recovery Mode',
       message: 'Restart DSH Desktop in Recovery Mode?',
-      detail: 'The next launch opens the recovery assistant before the Profile and plugin Host start. Running operations and unsent input may be interrupted.',
+      detail: 'The app will open the recovery assistant before loading the current Profile and plugins. Running operations may be interrupted, and unsent content may be lost.',
       confirm: 'Restart in Recovery Mode',
       cancel: 'Cancel',
     },
@@ -117,14 +120,14 @@ const restartConfirmationCopy: Record<DesktopLocale, Record<'normal' | 'recovery
     normal: {
       title: '重启 DSH Desktop',
       message: '现在重启 DSH Desktop？',
-      detail: '正在运行的操作和未发送的输入可能会中断，已保存的设置不会丢失。',
-      confirm: '重启',
+      detail: '正在运行的操作可能中断，未发送的内容可能丢失。已保存的设置会保留。',
+      confirm: '重启应用',
       cancel: '取消',
     },
     recovery: {
       title: '重启到恢复模式',
       message: '重启 DSH Desktop 并进入恢复模式？',
-      detail: '下次启动会在 Profile 和插件 Host 运行前打开恢复助手。正在运行的操作和未发送的输入可能会中断。',
+      detail: '应用将先打开恢复助手，暂不加载当前 Profile 和插件。正在运行的操作可能中断，未发送的内容可能丢失。',
       confirm: '重启到恢复模式',
       cancel: '取消',
     },

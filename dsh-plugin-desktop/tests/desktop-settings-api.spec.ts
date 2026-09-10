@@ -8,6 +8,7 @@ import DesktopSettingsController, {
 import {
   handleDesktopDeveloperToolsToggleRequest,
   handleDesktopDiagnosticsExportRequest,
+  handleDesktopAaSelectRequest,
   handleDesktopMarketSelectRequest,
   handleDesktopProfileCreateRequest,
   handleDesktopProfileDeleteRequest,
@@ -147,6 +148,38 @@ function response(): ServerResponse & {
   return res as unknown as ServerResponse & typeof res
 }
 
+describe('AA selection', () => {
+  it('persists before acknowledging and restarts only after the response', async () => {
+    let requested = false
+    const restart = vi.fn()
+    const controller = new DesktopSettingsController(bootstrap({
+      readAa: () => ({ requested, effective: false }),
+      selectAa: async enabled => { requested = enabled }, scheduleRestart: restart,
+    }))
+    const operation = await controller.selectAa(true)
+    expect(requested).toBe(true)
+    expect(controller.read().aa).toEqual({ requested: true, effective: false })
+    expect(operation.response.restartRequired).toBe(true)
+    expect(restart).not.toHaveBeenCalled()
+    await operation.afterResponse?.()
+    expect(restart).toHaveBeenCalledOnce()
+  })
+  it('rejects forged bodies and cross-origin writes', async () => {
+    const selectAa = vi.fn(async () => {})
+    const controller = new DesktopSettingsController(bootstrap({ selectAa,
+      readAa: () => ({ requested: false, effective: false }) }))
+    for (const body of [{ enabled: 'true' }, { enabled: true, extra: true }, {}]) {
+      const res = response()
+      await handleDesktopAaSelectRequest(jsonRequest(body), res, ORIGIN, controller)
+      expect(res.statusCode).toBe(400)
+    }
+    const res = response()
+    await handleDesktopAaSelectRequest(jsonRequest({ enabled: true }, { headers: { origin: 'https://example.com' } }), res, ORIGIN, controller)
+    expect(res.statusCode).toBe(403)
+    expect(selectAa).not.toHaveBeenCalled()
+  })
+})
+
 describe('desktop settings controller', () => {
   it('projects profiles without paths, bundles, or parser diagnostics', () => {
     const controller = new DesktopSettingsController(bootstrap())
@@ -158,6 +191,7 @@ describe('desktop settings controller', () => {
         { name: 'work', exists: true, webCapable: true, selectable: true, deletable: false },
         { name: 'broken', exists: true, webCapable: false, selectable: false, deletable: false },
       ],
+      aa: { requested: false, effective: false },
       market: { requested: 'disabled', effective: 'disabled', legacyDefaulted: false },
       web: {
         localUrl: 'http://127.0.0.1:43120/',
@@ -192,6 +226,7 @@ describe('desktop settings controller', () => {
         { name: 'desktop', exists: true, webCapable: true, selectable: true, deletable: false },
         { name: 'work', exists: true, webCapable: true, selectable: true, deletable: false },
       ],
+      aa: { requested: false, effective: false },
       market: { requested: 'disabled', effective: 'disabled', legacyDefaulted: false },
       web: {
         localUrl: 'http://127.0.0.1:43120/',
@@ -225,6 +260,7 @@ describe('desktop settings controller', () => {
         { name: 'desktop', exists: true, webCapable: true, selectable: true, deletable: false },
         { name: 'work', exists: true, webCapable: true, selectable: true, deletable: true },
       ],
+      aa: { requested: false, effective: false },
       market: { requested: 'disabled', effective: 'disabled', legacyDefaulted: false },
       web: {
         localUrl: 'http://127.0.0.1:43120/',
@@ -418,6 +454,7 @@ describe('desktop settings HTTP boundary', () => {
         { name: 'desktop', exists: true, webCapable: true, selectable: true, deletable: false },
         { name: 'work', exists: true, webCapable: true, selectable: true, deletable: false },
       ],
+      aa: { requested: false, effective: false },
       market: { requested: 'disabled', effective: 'disabled', legacyDefaulted: false },
       web: {
         localUrl: 'http://127.0.0.1:43120/',

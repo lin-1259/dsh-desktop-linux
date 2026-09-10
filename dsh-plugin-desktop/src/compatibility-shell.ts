@@ -14,15 +14,19 @@ export interface CompatibilityShellActions {
   reload(): void
   developerTools(): void
   checkForUpdates(): Promise<void>
+  remoteControl?: { read(): Promise<{ enabled: boolean; seen: boolean }>; open(): Promise<void> }
 }
 
 export class CompatibilityShell {
   readonly content: WebContentsView
   private readonly documentPath = fileURLToPath(new URL('./native-ui/compatibility-chrome.html', import.meta.url))
   private disposed = false
+  private remoteControl: CompatibilityChromeState['remoteControl']
   readonly chromeView: WebContentsView
   private expanded = false
   private readonly chrome: WebContents
+  private contentBounds: Electron.Rectangle | undefined
+  private chromeBounds: Electron.Rectangle | undefined
 
   constructor(
     private readonly window: BrowserWindow,
@@ -45,10 +49,20 @@ export class CompatibilityShell {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // Keep the embedded Windows renderer painting while minimized. Its
+      // compositor is separate from the native window and transparent chrome.
+      ...(platform === 'win32' ? { backgroundThrottling: false } : {}),
     } })
+    // Let the native window material show through the extended sidebar.
+    // CSS transparency alone cannot cross an opaque WebContentsView surface.
+    if (spec.mode === 'extended' && spec.material !== 'off') {
+      this.content.setBackgroundColor('#00000000')
+    }
     window.contentView.addChildView(this.content)
     window.contentView.addChildView(this.chromeView)
     window.on('resize', this.resize)
+    window.on('restore', this.resize)
+    window.on('show', this.resize)
     window.on('enter-full-screen', this.resize)
     window.on('leave-full-screen', this.resize)
     window.on('closed', this.dispose)
@@ -75,6 +89,7 @@ export class CompatibilityShell {
   get chromeWebContents(): WebContents { return this.chrome }
 
   async load(): Promise<void> {
+    await this.updateRemoteControl()
     await this.chrome.loadFile(this.documentPath)
   }
 
@@ -84,15 +99,40 @@ export class CompatibilityShell {
     }
   }
 
+  private async updateRemoteControl(): Promise<void> {
+    try { this.remoteControl = await this.actions.remoteControl?.read() }
+    catch { this.remoteControl = undefined }
+  }
+
+  private async openRemoteControl(): Promise<void> {
+    if (!this.actions.remoteControl) return
+    if (this.remoteControl) this.remoteControl = { ...this.remoteControl, seen: true }
+    this.refresh()
+    try { await this.actions.remoteControl.open() }
+    finally { await this.updateRemoteControl(); this.refresh() }
+  }
+
   private state(): CompatibilityChromeState {
-    return { locale: this.actions.locale(), version: this.actions.version, platform: this.platform, material: this.spec.material }
+    return { mode: this.spec.mode === 'extended' ? 'extended' : 'compatibility', locale: this.actions.locale(), version: this.actions.version, platform: this.platform, material: this.spec.material, ...(this.remoteControl ? { remoteControl: this.remoteControl } : {}) }
   }
 
   private readonly resize = (): void => {
     if (this.disposed || this.window.isDestroyed()) return
+    if (this.platform === 'win32' && this.window.isMinimized()) return
     const [width = 0, height = 0] = this.window.getContentSize()
-    this.content.setBounds({ x: 0, y: DESKTOP_FRAME_HEIGHT, width, height: Math.max(0, height - DESKTOP_FRAME_HEIGHT) })
-    this.chromeView.setBounds({ x: 0, y: 0, width, height: this.expanded ? height : Math.min(height, DESKTOP_FRAME_HEIGHT) })
+    // Minimize/restore can expose a transient empty client area. Retain the
+    // last usable surface until restore/show supplies the real dimensions.
+    if (this.platform === 'win32' && (width <= 0 || height <= DESKTOP_FRAME_HEIGHT)) return
+    const contentBounds = { x: 0, y: DESKTOP_FRAME_HEIGHT, width, height: Math.max(0, height - DESKTOP_FRAME_HEIGHT) }
+    const chromeBounds = { x: 0, y: 0, width, height: this.expanded ? height : Math.min(height, DESKTOP_FRAME_HEIGHT) }
+    if (!sameBounds(this.contentBounds, contentBounds)) {
+      this.content.setBounds(contentBounds)
+      this.contentBounds = contentBounds
+    }
+    if (!sameBounds(this.chromeBounds, chromeBounds)) {
+      this.chromeView.setBounds(chromeBounds)
+      this.chromeBounds = chromeBounds
+    }
   }
 
   private readonly preventNavigation = (event: Electron.Event): void => { event.preventDefault() }
@@ -110,10 +150,12 @@ export class CompatibilityShell {
   private command(command: unknown): CompatibilityChromeState | undefined | Promise<void> {
     switch (command) {
       case 'state': return this.state()
+      case 'remote-control': return this.openRemoteControl()
       case 'expand': this.expanded = true; this.resize(); return
       case 'collapse': this.collapse(); return
       case 'terminal': this.actions.openTerminal(); return
       case 'check-for-updates': return this.actions.checkForUpdates()
+      case 'mode-compatibility': return this.spec.requestModeChange('compatibility')
       case 'mode-extended': return this.spec.requestModeChange('extended')
       case 'mode-advanced': return this.spec.requestModeChange('advanced')
       case 'restart': return this.actions.restart()
@@ -130,6 +172,8 @@ export class CompatibilityShell {
     this.window.off('blur', this.dismiss)
     this.window.off('hide', this.dismiss)
     this.window.off('resize', this.resize)
+    this.window.off('restore', this.resize)
+    this.window.off('show', this.resize)
     this.window.off('enter-full-screen', this.resize)
     this.window.off('leave-full-screen', this.resize)
     this.window.off('closed', this.dispose)
@@ -148,4 +192,9 @@ export class CompatibilityShell {
     if (!this.chrome.isDestroyed()) this.chrome.close({ waitForBeforeUnload: false })
     if (!this.webContents.isDestroyed()) this.webContents.close({ waitForBeforeUnload: false })
   }
+}
+
+function sameBounds(previous: Electron.Rectangle | undefined, next: Electron.Rectangle): boolean {
+  return previous !== undefined && previous.x === next.x && previous.y === next.y
+    && previous.width === next.width && previous.height === next.height
 }

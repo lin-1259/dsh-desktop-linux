@@ -11,6 +11,39 @@ function setup() {
 }
 
 describe('automatic renderer recovery', () => {
+  it('accepts a healthy background document when Chromium reports it occluded', () => {
+    vi.useFakeTimers()
+    const recovery = new DesktopRendererRecovery({
+      available: () => true, reload: vi.fn(), exhausted: vi.fn(), log: vi.fn(), requireSurface: () => true,
+    })
+    recovery.fail('blank')
+    vi.advanceTimersByTime(0)
+    recovery.loaded()
+    recovery.report({ status: 'healthy' })
+    expect(recovery.detail).toBe('blank')
+    recovery.surfaceBecameHidden()
+    expect(recovery.detail).toBeUndefined()
+    recovery.stop()
+  })
+
+  it('requires visible surface evidence and permits background completion after hiding', () => {
+    vi.useFakeTimers()
+    const requireSurface = vi.fn(() => true)
+    const recovery = new DesktopRendererRecovery({
+      available: () => true, reload: vi.fn(), exhausted: vi.fn(), log: vi.fn(), requireSurface,
+    })
+    recovery.fail('blank')
+    vi.advanceTimersByTime(0)
+    recovery.loaded()
+    recovery.report({ status: 'healthy' })
+    expect(recovery.detail).toBe('blank')
+    expect(recovery.canProbeSurface).toBe(true)
+    requireSurface.mockReturnValue(false)
+    recovery.visibilityChanged()
+    expect(recovery.detail).toBeUndefined()
+    recovery.stop()
+  })
+
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })
 

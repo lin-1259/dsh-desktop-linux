@@ -27,7 +27,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-function fixture() {
+function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: 'compatibility' | 'extended' = 'compatibility', material: DesktopShellSpec['material'] = 'off') {
   const ipc = { handle: vi.fn(), removeHandler: vi.fn() }
   const webContents = Object.assign(new EventEmitter(), {
     ipc,
@@ -43,6 +43,7 @@ function fixture() {
     webContents,
     contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
     getContentSize: vi.fn(() => [1280, 840]),
+    isMinimized: vi.fn(() => false),
     isDestroyed: vi.fn(() => false),
     loadFile: vi.fn(async (path: string) => { webContents.mainFrame.url = pathToFileURL(path).href }),
   })
@@ -52,8 +53,8 @@ function fixture() {
     reload: vi.fn(), developerTools: vi.fn(),
     checkForUpdates: vi.fn(async () => {}),
   }
-  const spec = { material: 'off', requestModeChange: vi.fn(async () => {}) } as unknown as DesktopShellSpec
-  const shell = new CompatibilityShell(window as unknown as BrowserWindow, spec, 'darwin', '/desktop/preload.cjs', actions)
+  const spec = { mode, material, requestModeChange: vi.fn(async () => {}) } as unknown as DesktopShellSpec
+  const shell = new CompatibilityShell(window as unknown as BrowserWindow, spec, platform, '/desktop/preload.cjs', actions)
   const handler = ipc.handle.mock.calls[0]?.[1] as (event: unknown, command: unknown) => unknown
   const event = () => ({ sender: webContents, senderFrame: webContents.mainFrame })
   return { shell, window, webContents, ipc, handler, event, actions, spec }
@@ -64,9 +65,22 @@ describe('isolated compatibility shell', () => {
     vi.clearAllMocks()
   })
 
-  it('loads only the packaged chrome and reserves native bounds outside the content document', async () => {
-    const { shell, window, webContents } = fixture()
+  it.each([
+    ['darwin', 'extended', 'transparent', true],
+    ['win32', 'extended', 'mica', true],
+    ['darwin', 'extended', 'off', false],
+    ['darwin', 'compatibility', 'transparent', false],
+  ] as const)('preserves the content material boundary for %s %s %s', (platform, mode, material, transparent) => {
+    const { shell } = fixture(platform, mode, material)
+    if (transparent) expect(shell.content.setBackgroundColor).toHaveBeenCalledExactlyOnceWith('#00000000')
+    else expect(shell.content.setBackgroundColor).not.toHaveBeenCalled()
+    shell.dispose()
+  })
+
+  it.each(['compatibility', 'extended'] as const)('isolates %s chrome with native bounds outside the content document', async mode => {
+    const { shell, window, webContents, handler, event } = fixture('darwin', mode)
     await shell.load()
+    expect(handler(event(), 'state')).toMatchObject({ mode })
     expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui\/compatibility-chrome\.html$/))
     expect(window.contentView.addChildView).toHaveBeenCalledWith(shell.content)
     expect(shell.content).toMatchObject({ options: { webPreferences: {
@@ -86,7 +100,7 @@ describe('isolated compatibility shell', () => {
   it('rejects other renderers, child frames, navigated chrome, and arbitrary commands', async () => {
     const { shell, handler, event, webContents, actions } = fixture()
     await shell.load()
-    expect(handler(event(), 'state')).toEqual({ locale: 'en', platform: 'darwin', version: '2.0.3', material: 'off' })
+    expect(handler(event(), 'state')).toEqual({ mode: 'compatibility', locale: 'en', platform: 'darwin', version: '2.0.3', material: 'off' })
     expect(() => handler({ ...event(), sender: electron.content }, 'terminal')).toThrow('untrusted')
     expect(() => handler({ ...event(), senderFrame: { url: webContents.mainFrame.url } }, 'terminal')).toThrow('untrusted')
     expect(() => handler(event(), { command: 'terminal' })).toThrow('unsupported')
@@ -97,11 +111,50 @@ describe('isolated compatibility shell', () => {
     shell.dispose()
   })
 
+  it('preserves the Windows content surface through minimize, blur, and restore without reloading', () => {
+    const { shell, window, actions } = fixture('win32')
+    expect(shell.content).toMatchObject({ options: { webPreferences: { backgroundThrottling: false } } })
+    vi.mocked(shell.content.setBounds).mockClear()
+    window.isMinimized.mockReturnValue(true)
+    window.getContentSize.mockReturnValue([0, 0])
+    window.emit('resize')
+    window.emit('blur')
+    window.emit('hide')
+    window.isMinimized.mockReturnValue(false)
+    window.emit('restore') // Windows may not have published the restored size yet.
+    expect(shell.content.setBounds).not.toHaveBeenCalled()
+    window.getContentSize.mockReturnValue([1280, 840])
+    window.emit('resize')
+    window.emit('show')
+    expect(shell.content.setBounds).not.toHaveBeenCalled()
+    expect(actions.reload).not.toHaveBeenCalled()
+    window.getContentSize.mockReturnValue([1000, 700])
+    window.emit('restore')
+    expect(shell.content.setBounds).toHaveBeenCalledExactlyOnceWith({ x: 0, y: 36, width: 1000, height: 664 })
+    shell.dispose()
+    expect(window.listenerCount('restore')).toBe(0)
+    expect(window.listenerCount('show')).toBe(0)
+  })
+
+  it('does not resize the page when chrome popups expand, collapse, or lose focus', async () => {
+    const { shell, window, handler, event } = fixture('win32')
+    await shell.load()
+    vi.mocked(shell.content.setBounds).mockClear()
+    handler(event(), 'expand')
+    handler(event(), 'collapse')
+    window.emit('blur')
+    expect(shell.content.setBounds).not.toHaveBeenCalled()
+    expect(shell.chromeView.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1280, height: 36 })
+    shell.dispose()
+  })
+
   it('routes fixed actions without replacing the HTML menus with native menus', async () => {
     const { shell, handler, event, actions, spec } = fixture()
     await shell.load()
     await handler(event(), 'terminal')
     await handler(event(), 'check-for-updates')
+    await handler(event(), 'mode-compatibility')
+    expect(spec.requestModeChange).toHaveBeenCalledWith('compatibility')
     await handler(event(), 'mode-extended')
     expect(spec.requestModeChange).toHaveBeenCalledWith('extended')
     expect(actions.restart).not.toHaveBeenCalled()
@@ -170,4 +223,24 @@ describe('isolated compatibility shell', () => {
     expect(window.listenerCount('resize')).toBe(0)
     expect(() => handler(event(), 'terminal')).toThrow('untrusted')
   })
+})
+
+
+it('exposes the remote-control offer only to trusted chrome and clears the dot on click', async () => {
+  const { shell, actions, handler, event } = fixture()
+  let seen = false
+  let finish!: () => void
+  actions.remoteControl = {
+    read: async () => ({ enabled: false, seen }),
+    open: vi.fn(() => { seen = true; return new Promise<void>(resolve => { finish = resolve }) }),
+  }
+  await shell.load()
+  expect(handler(event(), 'state')).toMatchObject({ remoteControl: { enabled: false, seen: false } })
+  expect(() => handler({ ...event(), sender: electron.content }, 'remote-control')).toThrow('untrusted')
+  const pending = handler(event(), 'remote-control')
+  expect(handler(event(), 'state')).toMatchObject({ remoteControl: { seen: true } })
+  expect(actions.remoteControl.open).toHaveBeenCalledTimes(1)
+  finish()
+  await pending
+  shell.dispose()
 })

@@ -28,9 +28,11 @@ export const DESKTOP_SAFE_MODE_PROFILE_NAME = 'desktop-safe-mode'
 
 /** Fixed, disposable preferences used without showing first-run Setup. */
 export const DESKTOP_SAFE_MODE_DEFAULTS: Readonly<{
+  aaEnabled: false
   market: DesktopMarketProvider
   settings: DesktopSetupWizardSettings
 }> = Object.freeze({
+  aaEnabled: false,
   market: 'disabled',
   settings: Object.freeze({
     mode: 'compatibility',

@@ -1,6 +1,8 @@
 # Compatibility chrome isolation
 
-On macOS and Windows, compatibility mode uses two documents in one native window:
+Both editions use the isolated frame originally introduced in PR #868. Renderer crash recovery from PR #869 remains enabled in both variants.
+
+On macOS and Windows, compatibility and extended modes use two documents in one native window:
 
 - A transparent, Desktop-owned WebContentsView loads the packaged `native-ui/compatibility-chrome.html` in an ephemeral, Desktop-only session. Its preload exposes only fixed chrome commands and locale/version state.
 - A WebContentsView loads the upstream DSH page in `persist:dsh-desktop-renderer`. It retains the existing file-path preload, authentication exchange, request capability, navigation policy, boot monitoring, reload, zoom, and developer-tools behavior.
@@ -13,7 +15,7 @@ On macOS and Windows, compatibility mode uses two documents in one native window
 - IPC is registered on the chrome WebContents, validates its exact packaged top-level document, and rejects arbitrary commands and other frames. The DSH preload exposes no chrome bridge. No renderer-supplied JavaScript, URL, or filesystem path is executed by the command handler.
 - Teardown removes handlers/listeners and explicitly closes both child WebContents. The chrome document does not load Cordis, DSH, or third-party client plugins.
 
-Linux compatibility mode retains the native-titlebar fallback. Extended and advanced modes keep their existing rendering paths; this change does not introduce Shadow DOM there.
+Linux compatibility mode retains the native-titlebar fallback. Extended mode uses the same isolated chrome on macOS and Windows; advanced mode retains its integrated layout. This change does not introduce Shadow DOM.
 
 ## Verification
 

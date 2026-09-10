@@ -9,6 +9,7 @@ interface RendererRecoveryOptions {
   readonly reload: () => void
   readonly exhausted: () => void
   readonly log: (message: string) => void
+  readonly requireSurface?: () => boolean
 }
 
 type RecoveryPhase = 'idle' | 'scheduled' | 'loading' | 'exhausted' | 'stopped'
@@ -21,11 +22,33 @@ export class DesktopRendererRecovery {
   private documentLoaded = false
   private clientHealthy = false
   private failure: string | undefined
+  private surfaceHealthy = false
+  private surfaceHidden = false
 
   constructor(private readonly options: RendererRecoveryOptions) {}
 
   get exhausted(): boolean { return this.phase === 'exhausted' }
   get detail(): string | undefined { return this.failure }
+  get canProbeSurface(): boolean {
+    return this.phase === 'idle'
+      || (this.phase === 'loading' && this.documentLoaded && this.clientHealthy)
+  }
+
+  confirmSurface(): void {
+    if (this.phase !== 'loading') return
+    this.surfaceHealthy = true
+    this.acceptHealth()
+  }
+
+  visibilityChanged(): void {
+    if (this.phase === 'loading') this.acceptHealth()
+  }
+
+  surfaceBecameHidden(): void {
+    if (this.phase !== 'loading') return
+    this.surfaceHidden = true
+    this.acceptHealth()
+  }
 
   fail(detail: string): void {
     if (this.phase === 'stopped' || !this.options.available()) return
@@ -87,6 +110,8 @@ export class DesktopRendererRecovery {
     this.attempts += 1
     this.documentLoaded = false
     this.clientHealthy = false
+    this.surfaceHealthy = false
+    this.surfaceHidden = false
     this.options.log(`automatic renderer recovery attempt ${String(this.attempts)}`)
     this.timer = setTimeout(() => {
       this.fail('renderer recovery timed out waiting for page load and client health')
@@ -101,6 +126,7 @@ export class DesktopRendererRecovery {
 
   private acceptHealth(): void {
     if (!this.documentLoaded || !this.clientHealthy || !this.options.available()) return
+    if (this.options.requireSurface?.() && !this.surfaceHealthy && !this.surfaceHidden) return
     this.clearAttemptTimer()
     this.phase = 'idle'
     this.failure = undefined
