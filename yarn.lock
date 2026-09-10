@@ -9931,11 +9931,11 @@ __metadata:
 
 "fs-ext@patch:fs-ext@npm%3A2.1.1#./patches/fs-ext@2.1.1.patch::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 2.1.1
-  resolution: "fs-ext@patch:fs-ext@npm%3A2.1.1#./patches/fs-ext@2.1.1.patch::version=2.1.1&hash=e0cae7&locator=deepseek-harness-desktop%40workspace%3A."
+  resolution: "fs-ext@patch:fs-ext@npm%3A2.1.1#./patches/fs-ext@2.1.1.patch::version=2.1.1&hash=c9ffbc&locator=deepseek-harness-desktop%40workspace%3A."
   dependencies:
     nan: "npm:^2.21.0"
     node-gyp: "npm:latest"
-  checksum: 10c0/add7f27a1d3b1c6e4c613acb19b139b90955adc86939b7214a6f2eec5ca1c5c9231822a23e2228aff1eee5f3a66d7ea3fd3cd8f6c5b498cdf81e1a80b7fc611d
+  checksum: 10c0/9c751919396538993119541bd9ca1f1bcef0545e8f4bcc4959c44a9c59b5ebbadd458ccce9a8fb4c929a8d4fa9ffcc9a3ab558c18bc301f9f7d523914cfdbc5a
   languageName: node
   linkType: hard
 

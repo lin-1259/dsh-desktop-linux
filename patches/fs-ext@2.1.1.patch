@@ -1,7 +1,7 @@
 diff --git a/fs-ext.js b/fs-ext.js
 --- a/fs-ext.js
 +++ b/fs-ext.js
-@@ -19,7 +19,17 @@
+@@ -19,7 +19,23 @@
 -
 +
  "use strict";
