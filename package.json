@@ -602,7 +602,7 @@
     "dist:mac-smoke": "yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop dist:mac-smoke",
     "dist:win": "yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop dist:win",
     "dist:win-portable": "yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop dist:win-portable",
-    "dist:linux": "yarn aa:prepare-release && yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop build && yarn workspace dsh-plugin-desktop exec electron-builder --linux AppImage deb --publish never --config.forceCodeSigning=false",
+    "dist:linux": "yarn workspace dsh-community-market build && yarn workspace dsh-plugin-desktop build && yarn workspace dsh-plugin-desktop exec electron-builder --linux AppImage deb --publish never --config.forceCodeSigning=false",
     "upstream:version": "cd deepseek-harness && corepack pnpm --version",
     "upstream:install": "cd deepseek-harness && CI=true corepack pnpm install --frozen-lockfile",
     "upstream:build": "cd deepseek-harness && corepack pnpm run build",
