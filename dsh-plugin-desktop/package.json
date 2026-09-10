@@ -432,7 +432,8 @@
         "build/tray-icon-blue@2x.png",
         "node_modules/@agents-anywhere/dsh-bridge-next/lib/bundled-connector/**",
         "node_modules/@img/sharp-libvips-linux-*/**",
-        "node_modules/@img/sharp-linux-*/**"
+        "node_modules/@img/sharp-linux-*/**",
+        "node_modules/fs-ext/**"
       ],
       "target": [
         "AppImage",
