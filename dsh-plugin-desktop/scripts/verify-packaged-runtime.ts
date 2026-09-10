@@ -197,8 +197,11 @@ export const REQUIRED_POSIX_FS_EXT_ENTRIES = {
     arm64: 'node_modules/fs-ext/prebuilds/darwin-arm64/electron.abi148.node',
   },
   linux: {
-    x64: 'node_modules/fs-ext/prebuilds/linux-x64/electron.abi148.node',
-    arm64: 'node_modules/fs-ext/prebuilds/linux-arm64/electron.abi148.node',
+    // fs-ext ships no prebuilds/ on Linux: the patched install.js only compiles
+    // to build/Release/fs_ext.node (asar-unpacked via "fs-ext/**"). The
+    // prebuilds/<platform>-<arch>/electron.abi*.node layout is macOS-only.
+    x64: 'node_modules/fs-ext/build/Release/fs_ext.node',
+    arm64: 'node_modules/fs-ext/build/Release/fs_ext.node',
   },
 } as const
 
