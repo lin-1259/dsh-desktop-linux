@@ -441,10 +441,9 @@
       ],
       "icon": "build/app-icon.png",
       "category": "Development",
-      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}",
-      "npmRebuild": true
+      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}"
     },
-    "npmRebuild": false
+    "npmRebuild": true
   },
   "author": {
     "name": "lin-1259",
