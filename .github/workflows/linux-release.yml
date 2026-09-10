@@ -103,4 +103,9 @@ jobs:
             dsh-plugin-desktop/dist/*.AppImage \
             dsh-plugin-desktop/dist/*.deb \
             --title "DSH Desktop Linux ${{ steps.discover.outputs.upstream_tag }}" \
-            --notes "$BODY" || echo "release may already exist, ignoring"
+            --notes "$BODY" \
+            || gh release upload "$TAG" \
+              -R "${{ github.repository }}" \
+              --clobber \
+              dsh-plugin-desktop/dist/*.AppImage \
+              dsh-plugin-desktop/dist/*.deb
