@@ -17,6 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Sync fork master with upstream
+        run: |
+          git remote add upstream https://github.com/anywhere-labs/dsh-desktop.git 2>/dev/null || true
+          git fetch upstream master
+          git merge upstream/master --no-edit || { echo "::error::fork master 与上游合并冲突,需人工处理后再构建"; exit 1; }
+          git push origin master
+
       - name: Discover upstream release
         id: discover
         env:
