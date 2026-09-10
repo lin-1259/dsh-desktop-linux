@@ -441,7 +441,8 @@
       ],
       "icon": "build/app-icon.png",
       "category": "Development",
-      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}"
+      "artifactName": "DSH-Desktop-${version}-linux-${arch}.${ext}",
+      "npmRebuild": true
     },
     "npmRebuild": false
   },

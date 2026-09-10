@@ -14,8 +14,14 @@ diff --git a/fs-ext.js b/fs-ext.js
 +  if (!process.versions.modules) {
 +    throw new Error('fs-ext cannot determine the Electron native module ABI');
 +  }
-+  bindingPath = './prebuilds/' + process.platform + '-' + process.arch
-+    + '/electron.abi' + process.versions.modules + '.node';
++  if (process.platform === 'darwin') {
++    bindingPath = './prebuilds/' + process.platform + '-' + process.arch
++      + '/electron.abi' + process.versions.modules + '.node';
++  } else {
++    // Linux/Windows: electron-builder rebuilds the binding for the runtime ABI
++    // into build/Release (npmRebuild). prebuilds/ is a macOS universal layout.
++    bindingPath = './build/Release/fs_ext.node';
++  }
 +}
 +
 +var binding = require(bindingPath);
