@@ -807,7 +807,13 @@ export function verifyPackagedRuntime(
       : context.arch === 3
         ? REQUIRED_POSIX_FS_EXT_ENTRIES.darwin.arm64
         : undefined
-    : undefined
+    : context.electronPlatformName === 'linux'
+      ? context.arch === 1
+        ? REQUIRED_POSIX_FS_EXT_ENTRIES.linux.x64
+        : context.arch === 3
+          ? REQUIRED_POSIX_FS_EXT_ENTRIES.linux.arm64
+          : undefined
+      : undefined
   const requiredPhysicalEntries = context.electronPlatformName === 'win32'
     ? [
         ...desktopPhysicalEntries,
