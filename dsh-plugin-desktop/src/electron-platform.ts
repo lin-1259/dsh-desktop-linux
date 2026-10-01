@@ -103,8 +103,6 @@ class LinuxPlatformStrategy implements ElectronPlatformStrategy {
     // menu is shown on every window.
     window.removeMenu()
   }
-
-  refreshThemeMaterial(_window: BrowserWindow, _material: DesktopWindowMaterial): void {}
 }
 
 /** Select the only platform adapter used by one Electron runtime generation. */
