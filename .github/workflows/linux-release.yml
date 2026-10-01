@@ -78,6 +78,9 @@ jobs:
         env:
           DSH_TELEMETRY_DISABLED: '1'
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # Pin dshmarket to the version .yarn/patches/dshmarket-desktop.patch
+          # was authored against; npm latest (1.66.8) breaks patch hunk #2.
+          DSH_MARKET_VERSION: '1.66.7'
         run: yarn dist:linux
 
       - name: Upload artifacts

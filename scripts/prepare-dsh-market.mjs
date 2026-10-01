@@ -44,7 +44,7 @@ function install(directory) {
 
 export async function prepareMarket(directory, { check = false, fetcher = fetch, runInstall = install } = {}) {
   // Resolve the tag before any writes. An offline check must not silently bless an old release.
-  const version = await latestMarket(fetcher)
+  const version = process.env.DSH_MARKET_VERSION || await latestMarket(fetcher)
   const paths = ['package.json', ...MARKET_WORKSPACES.map(name => `${name}/package.json`), 'yarn.lock']
   const originals = new Map(paths.map(path => [path, readFileSync(join(directory, path))]))
   const manifests = new Map(paths.filter(path => path.endsWith('.json')).map(path =>
