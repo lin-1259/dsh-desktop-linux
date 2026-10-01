@@ -1,7 +1,7 @@
 diff --git a/fs-ext.js b/fs-ext.js
 --- a/fs-ext.js
 +++ b/fs-ext.js
-@@ -19,7 +19,23 @@
+@@ -19,7 +19,25 @@
 -
 +
  "use strict";
@@ -18,9 +18,11 @@ diff --git a/fs-ext.js b/fs-ext.js
 +    bindingPath = './prebuilds/' + process.platform + '-' + process.arch
 +      + '/electron.abi' + process.versions.modules + '.node';
 +  } else {
-+    // Linux/Windows: electron-builder rebuilds the binding for the runtime ABI
-+    // into build/Release (npmRebuild). prebuilds/ is a macOS universal layout.
-+    bindingPath = './build/Release/fs_ext.node';
++    // Linux: scripts/prepare-fs-ext.ts compiles the Electron-ABI binding and
++    // writes prebuilds/<platform>-<arch>/electron.abi<abi>.node before
++    // packaging (npmRebuild=false in the upstream 2.0.17+ flow).
++    bindingPath = './prebuilds/' + process.platform + '-' + process.arch
++      + '/electron.abi' + process.versions.modules + '.node';
 +  }
 +}
 +
